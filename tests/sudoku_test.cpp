@@ -305,7 +305,7 @@ TEST_F(SudokuTest, solveSudoku) {
     EXPECT_TRUE(result) << m_errorMessage;
 }
 
-TEST_F(SudokuTest, DISABLED_backTrackingImmune) {
+TEST_F(SudokuTest, backTrackingImmune) {
     uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0},
         {0, 0, 0, 0, 0, 3, 0, 8, 5},
