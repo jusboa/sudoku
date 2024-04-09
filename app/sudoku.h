@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #define SUDOKU_SIZE 9
+#define SUBMATRIX_SIZE 3 /* == sqrt(SUDOKU_SIZE) */
 
 bool sudoku_solve(uint8_t matrix[][SUDOKU_SIZE]);
 
