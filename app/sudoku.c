@@ -12,16 +12,16 @@ static uint16_t binMatrix[SUDOKU_SIZE][SUDOKU_SIZE];
 /* sudoku row ~ array cell, sudoku column contains value ~ cell value bit is 1 */
 static uint16_t originalMatrix[SUDOKU_SIZE];
 
-inline static bool isLast(int row, int column) {
+static inline bool isLast(int row, int column) {
     return row >= (SUDOKU_SIZE - 1)
         && column >= (SUDOKU_SIZE - 1);
 }
 
-inline static bool isFirst(int row, int column) {
+static inline bool isFirst(int row, int column) {
     return row == 0 && column == 0;
 }
 
-inline static void next(int* row, int* column) {
+static inline void next(int* row, int* column) {
     if (*column < (SUDOKU_SIZE - 1)) {
         ++(*column);
     } else {
@@ -32,7 +32,7 @@ inline static void next(int* row, int* column) {
     }
 }
 
-inline static void previous(int* row, int* column) {
+static inline void previous(int* row, int* column) {
     if (*column > 0) {
         --(*column);
     } else {
@@ -101,7 +101,7 @@ static bool isMatrixValid() {
     return true;
 }
 
-inline static bool isEntryValid(int entryRow, int entryColumn,
+static inline bool isEntryValid(int entryRow, int entryColumn,
                                 uint8_t entry) {
     if (entry == 0 || entry > SUDOKU_SIZE) {
         return false;
@@ -129,20 +129,24 @@ inline static bool isEntryValid(int entryRow, int entryColumn,
     return true;
 }
 
+static inline void setBinMatrixValue(int row, int column, uint8_t value) {
+    binMatrix[value-1][row] |= (1 << column);
+}
+
 static void decMatrixToBin(uint8_t matrix[][SUDOKU_SIZE]) {
     memset(binMatrix, 0, CELLS_COUNT * sizeof(binMatrix[0][0]));
     for (int row = 0; row < SUDOKU_SIZE; ++row) {
         for (int column = 0; column < SUDOKU_SIZE; ++column) {
             uint8_t value = matrix[row][column];
             if (value != 0) {
-                binMatrix[value-1][row] |= (1 << column);
+                setBinMatrixValue(row, column, value);
             }
         }
     }
 }
 
 /* Go backward and find the first unknown cell (== 0). */
-inline static void backward(int* row, int* column) {
+static inline void backward(int* row, int* column) {
     do {
         previous(row, column);
     } while (isOriginalValue(*row, *column)
@@ -206,12 +210,50 @@ static bool backTrack(uint8_t matrix[][SUDOKU_SIZE]) {
     return true;
 }
 
+bool findNakedSingles(uint8_t matrix[][SUDOKU_SIZE]) {
+    int foundAny = false;
+    uint8_t nakedSingle = 0;
+    for (int row = 0; row < SUDOKU_SIZE; ++row) {
+        for (int column = 0; column < SUDOKU_SIZE; ++column) {
+            if (isOriginalValue(row, column)) {
+                continue;
+            }
+            nakedSingle = 0;
+            for (uint8_t num = 1; num <= SUDOKU_SIZE; ++num) {
+                if (isEntryValid(row, column, num)) { 
+                    if (nakedSingle == 0) {
+                        nakedSingle = num;
+                    } else {
+                        /* The second valid entry for this cell -> no naked single */
+                        nakedSingle = 0;
+                        break;
+                    }
+                }
+            }
+            if (nakedSingle != 0) {
+                /* Found a naked single */
+                matrix[row][column] = nakedSingle;
+                /* Update bin */
+                setBinMatrixValue(row, column, nakedSingle);
+                /* Update original */
+                originalMatrix[row] |= (1 << column);
+                foundAny = true;
+            }
+        }
+    }
+    return foundAny;
+}
+
 bool sudoku_solve(uint8_t matrix[][SUDOKU_SIZE]) {
-    backupOriginalMatrix(matrix);
     decMatrixToBin(matrix);
+    backupOriginalMatrix(matrix);
+
     if (!isMatrixValid()) {
         return false;
     }
+
+    while (findNakedSingles(matrix));
+
     if (!backTrack(matrix)) {
         return false;
     }
