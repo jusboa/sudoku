@@ -15,7 +15,7 @@ ctest --extra-verbose --test-dir tests
 ## Benchmark on target
 The solver was tested on Texas EK-TM4C123GXL devkit utilizing TM4C123G Arm Cortex-M4F processor.
 The _target_ folder holds a Code Composer Studio project (tested with CCS 12.6).
-Once running the sudoku could be send to the target via UART using _dev/sudokuCom.py_
+Once running the sudoku could be sent to the target via UART using _dev/sudokuCom.py_
 ```
 python3 sudokuCom.py --puzzle-file sudoku_1.txt --port <serial_port_number>
 ```
