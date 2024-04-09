@@ -5,7 +5,12 @@
 #define CELLS_COUNT (SUDOKU_SIZE * SUDOKU_SIZE)
 #define SUBMATRIX_BASE_MASK (0x0007)
 
+/* sudoku value ~ matrix row, sudoku row ~ matrix column, sudoku column ~ cell value bit */
 static uint16_t binMatrix[SUDOKU_SIZE][SUDOKU_SIZE];
+/* To keep track of sudoku original values not to try to 'solve' them */
+/* Matrix with 1s at original sudoku values. */
+/* sudoku row ~ array cell, sudoku column contains value ~ cell value bit is 1 */
+static uint16_t originalMatrix[SUDOKU_SIZE];
 
 inline static bool isLast(int row, int column) {
     return row >= (SUDOKU_SIZE - 1)
@@ -36,6 +41,22 @@ inline static void previous(int* row, int* column) {
             *column = SUDOKU_SIZE - 1;
         }
     }
+}
+
+static void backupOriginalMatrix(uint8_t matrix[][SUDOKU_SIZE]) {
+    memset(originalMatrix, 0, SUDOKU_SIZE * sizeof(originalMatrix[0]));
+    for (int row = 0; row < SUDOKU_SIZE; ++row) {
+        for (int column = 0; column < SUDOKU_SIZE; ++column) {
+            if (matrix[row][column] != 0) {
+                originalMatrix[row] |= (1 << column);
+            }
+        }
+    }
+}
+
+/* Gives true if this is the original sudoku value. */
+static inline bool isOriginalValue(int row, int column) {
+    return (originalMatrix[row] & (1 << column)) != 0;
 }
 
 static bool isMatrixValid() {
@@ -108,18 +129,7 @@ inline static bool isEntryValid(int entryRow, int entryColumn,
     return true;
 }
 
-inline static uint8_t binMatrixValue(int row, int column) {
-    uint16_t mask = 1 << column;
-    uint8_t value;
-    for (value = 1; value <= SUDOKU_SIZE; ++value) {
-        if ((binMatrix[value-1][row] & mask)  != 0) {
-            return value;
-        }
-    }
-    return 0;
-}
-
-static bool decMatrixToBin(uint8_t matrix[][SUDOKU_SIZE]) {
+static void decMatrixToBin(uint8_t matrix[][SUDOKU_SIZE]) {
     memset(binMatrix, 0, CELLS_COUNT * sizeof(binMatrix[0][0]));
     for (int row = 0; row < SUDOKU_SIZE; ++row) {
         for (int column = 0; column < SUDOKU_SIZE; ++column) {
@@ -131,38 +141,28 @@ static bool decMatrixToBin(uint8_t matrix[][SUDOKU_SIZE]) {
     }
 }
 
-static void binMatrixToDec(uint8_t matrix[][SUDOKU_SIZE]) {
-    for (int row = 0; row < SUDOKU_SIZE; ++row) {
-        for (int column = 0; column < SUDOKU_SIZE; ++column) {
-            matrix[row][column] = binMatrixValue(row, column);
-        }
-    }
-    
-}
-
 /* Go backward and find the first unknown cell (== 0). */
-inline static void backward(const uint8_t matrix[][SUDOKU_SIZE],
-                            int* row, int* column) {
+inline static void backward(int* row, int* column) {
     do {
         previous(row, column);
-    } while (matrix[*row][*column] != 0
+    } while (isOriginalValue(*row, *column)
              && !isFirst(*row, *column));
 }
 
 static bool backTrack(uint8_t matrix[][SUDOKU_SIZE]) {
     int row = 0;
     int column = 0;
-    uint8_t* firstEmpty = NULL;
+    const uint8_t* firstEmpty = NULL;
     for (int row = 0; row < SUDOKU_SIZE; ++row) {
         for (int column = 0; column < SUDOKU_SIZE; ++column) {
-            if (matrix[row][column] == 0) {
+            if (!isOriginalValue(row, column)) {
                 firstEmpty = &matrix[row][column];
                 break;
             }
         }
     }
     while (true) {
-        if (matrix[row][column] != 0) {
+        if (isOriginalValue(row, column)) {
             if (isLast(row, column)) {
                 break;
             } else {
@@ -170,7 +170,7 @@ static bool backTrack(uint8_t matrix[][SUDOKU_SIZE]) {
                 continue;
             }
         }
-        uint8_t numOld = binMatrixValue(row, column);
+        uint8_t numOld = matrix[row][column];
         uint8_t num = numOld + 1;
         for (; num <= SUDOKU_SIZE; ++num) {
             if (isEntryValid(row, column, num)) {
@@ -183,6 +183,7 @@ static bool backTrack(uint8_t matrix[][SUDOKU_SIZE]) {
                 binMatrix[numOld-1][row] &= ~(1 << column);
             }
             binMatrix[num-1][row] |= (1 << column);
+            matrix[row][column] = num;
             if (isLast(row, column)) {
                 /* Finished */
                 break;
@@ -198,13 +199,15 @@ static bool backTrack(uint8_t matrix[][SUDOKU_SIZE]) {
             if (numOld != 0) {
                 binMatrix[numOld-1][row] &= ~(1 << column);
             }
-            backward(matrix, &row, &column);
+            matrix[row][column] = 0;
+            backward(&row, &column);
         }
     }
     return true;
 }
 
 bool sudoku_solve(uint8_t matrix[][SUDOKU_SIZE]) {
+    backupOriginalMatrix(matrix);
     decMatrixToBin(matrix);
     if (!isMatrixValid()) {
         return false;
@@ -212,6 +215,5 @@ bool sudoku_solve(uint8_t matrix[][SUDOKU_SIZE]) {
     if (!backTrack(matrix)) {
         return false;
     }
-    binMatrixToDec(matrix);
     return true;
 }
