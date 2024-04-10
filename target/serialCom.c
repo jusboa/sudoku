@@ -17,10 +17,10 @@
 
 static char rxData[DATA_SIZE];
 static unsigned int rxDataIndex;
-static newDataSlot_t m_newDataSlot;
+static newSerialDataSlot_t newDataSlot;
 
-void serialCom_registerNewDataSlot(newDataSlot_t newDataSlot) {
-    m_newDataSlot = newDataSlot;
+void serialCom_registerNewDataSlot(newSerialDataSlot_t slot) {
+    newDataSlot = slot;
 }
 
 void UARTIntHandler(void) {
@@ -33,8 +33,8 @@ void UARTIntHandler(void) {
     while (ROM_UARTCharsAvail(UART0_BASE) && rxDataIndex < (DATA_SIZE - 1)) {
         rxData[rxDataIndex++] = ROM_UARTCharGetNonBlocking(UART0_BASE);
     }
-    if (m_newDataSlot != NULL) {
-        m_newDataSlot(rxData, rxDataIndex);
+    if (newDataSlot != NULL) {
+        newDataSlot(rxData, rxDataIndex);
     }
     rxDataIndex = 0;
 }
