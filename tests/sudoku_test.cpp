@@ -11,10 +11,12 @@ class SudokuTest : public testing::Test {
 public:
     void SetUp() override {
         m_errorMessage = string();
+        memcpy(m_testSudoku, SOLUTION, SUDOKU_SIZE_B);
     }
 
 protected:
-    static constexpr uint8_t m_sudoku[SUDOKU_SIZE][SUDOKU_SIZE] = {
+    static constexpr int SUDOKU_SIZE_B = SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t);
+    static constexpr uint8_t SUDOKU_1[SUDOKU_SIZE][SUDOKU_SIZE] = {
         {5, 3, 0, 0, 7, 0, 0, 0, 0},
         {6, 0, 0, 1, 9, 5, 0, 0, 0},
         {0, 9, 8, 0, 0, 0, 0, 6, 0},
@@ -24,6 +26,27 @@ protected:
         {0, 6, 0, 0, 0, 0, 2, 8, 0},
         {0, 0, 0, 4, 1, 9, 0, 0, 5},
         {0, 0, 0, 0, 8, 0, 0, 7, 9}};
+    static constexpr uint8_t SUDOKU_2[SUDOKU_SIZE][SUDOKU_SIZE] = {
+        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 0, 3, 0, 8, 5},
+        {0, 0, 1, 0, 2, 0, 0, 0, 0},
+        {0, 0, 0, 5, 0, 7, 0, 0, 0},
+        {0, 0, 4, 0, 0, 0, 1, 0, 0},
+        {0, 9, 0, 0, 0, 0, 0, 0, 0},
+        {5, 0, 0, 0, 0, 0, 0, 7, 3},
+        {0, 0, 2, 0, 1, 0, 0, 0, 0},
+        {0, 0, 0, 0, 4, 0, 0, 0, 9}};
+    static constexpr uint8_t SOLUTION[SUDOKU_SIZE][SUDOKU_SIZE] = {
+        {5, 3, 4, 6, 7, 8, 9, 1, 2},
+        {6, 7, 2, 1, 9, 5, 3, 4, 8},
+        {1, 9, 8, 3, 4, 2, 5, 6, 7},
+        {8, 5, 9, 7, 6, 1, 4, 2, 3},
+        {4, 2, 6, 8, 5, 3, 7, 9, 1},
+        {7, 1, 3, 9, 2, 4, 8, 5, 6},
+        {9, 6, 1, 5, 3, 7, 2, 8, 4},
+        {2, 8, 7, 4, 1, 9, 6, 3, 5},
+        {3, 4, 5, 2, 8, 6, 1, 7, 9}};
+    uint8_t m_testSudoku[SUDOKU_SIZE][SUDOKU_SIZE];
     static constexpr int m_submatrixSize = static_cast<int>(sqrt(SUDOKU_SIZE));
     string m_errorMessage;
 
@@ -186,146 +209,59 @@ protected:
 class SelfTest : public SudokuTest {};
 
 TEST_F(SelfTest, validSolution) {
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {5, 3, 4, 6, 7, 8, 9, 1, 2},
-        {6, 7, 2, 1, 9, 5, 3, 4, 8},
-        {1, 9, 8, 3, 4, 2, 5, 6, 7},
-        {8, 5, 9, 7, 6, 1, 4, 2, 3},
-        {4, 2, 6, 8, 5, 3, 7, 9, 1},
-        {7, 1, 3, 9, 2, 4, 8, 5, 6},
-        {9, 6, 1, 5, 3, 7, 2, 8, 4},
-        {2, 8, 7, 4, 1, 9, 6, 3, 5},
-        {3, 4, 5, 2, 8, 6, 1, 7, 9}};
-    EXPECT_TRUE(isSudokuSolutionOk(m_sudoku, solution));
+    EXPECT_TRUE(isSudokuSolutionOk(SUDOKU_1, m_testSudoku));
 }
 
 TEST_F(SelfTest, validSolutionMismatchWithOriginal) {
-    static uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {6, 3, 9, 5, 7, 4, 1, 8, 2},
-        {5, 4, 1, 8, 2, 9, 3, 7, 6},
-        {7, 8, 2, 6, 1, 3, 9, 5, 4},
-        {1, 9, 8, 4, 6, 7, 5, 2, 3},
-        {3, 6, 5, 9, 8, 2, 4, 1, 7},
-        {4, 2, 7, 1, 3, 5, 8, 6, 9},
-        {9, 5, 6, 7, 4, 8, 2, 3, 1},
-        {8, 1, 3, 2, 9, 6, 7, 4, 5},
-        {2, 7, 4, 3, 5, 1, 6, 9, 8}};
-    
-    EXPECT_FALSE(isSudokuSolutionOk(m_sudoku, solution, m_errorMessage));
+    m_testSudoku[0][0] = 6;       // original = 5
+    EXPECT_FALSE(isSudokuSolutionOk(SUDOKU_1, m_testSudoku, m_errorMessage));
     EXPECT_TRUE(regex_search(m_errorMessage, regex("Mismatch of solution with original value")));
 }
 
 TEST_F(SelfTest, invalidSolution) {
-    static uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {5, 3, 4, 6, 7, 8, 9, 1, 9/*2*/},
-        {6, 7, 2, 1, 9, 5, 3, 4, 8},
-        {1, 9, 8, 3, 4, 2, 5, 6, 7},
-        {8, 5, 9, 7, 6, 1, 4, 2, 3},
-        {4, 2, 6, 8, 5, 3, 7, 9, 1},
-        {7, 1, 3, 9, 2, 4, 8, 5, 6},
-        {9, 6, 1, 5, 3, 7, 2, 8, 4},
-        {2, 8, 7, 4, 1, 9, 6, 3, 5},
-        {3, 4, 5, 2, 8, 6, 1, 7, 9}};
-    EXPECT_FALSE(isSudokuSolutionOk(m_sudoku, solution));
+    m_testSudoku[0][8] = 9;       // correct value = 2
+    EXPECT_FALSE(isSudokuSolutionOk(SUDOKU_1, m_testSudoku));
 }
 
 TEST_F(SelfTest, outofBoundValues) {
-    static uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {5, 3, 4, 6, 7, 8, 9, 1, 2},
-        {6, 7, 2, 1, 9, 5, 3, 4, 8},
-        {1, 9, 8, 3, 4, 2, 5, 6, 7},
-        {8, 5, 9, 7, 6, 1, 4, 2, 3},
-        {4, 2, 6, 8, 0/*5*/, 3, 7, 9, 1},
-        {7, 1, 3, 9, 2, 4, 8, 5, 6},
-        {9, 6, 1, 5, 3, 7, 2, 8, 4},
-        {2, 8, 7, 4, 1, 9, 6, 3, 5},
-        {3, 4, 5, 2, 8, 6, 1, 7, 9}};
-    
-    EXPECT_FALSE(isSudokuSolutionOk(m_sudoku, solution, m_errorMessage));
+    m_testSudoku[4][4] = 0;       // correct value = 5
+    EXPECT_FALSE(isSudokuSolutionOk(SUDOKU_1, m_testSudoku, m_errorMessage));
     EXPECT_TRUE(regex_search(m_errorMessage, regex("out of bounds")));
 }
 
 TEST_F(SudokuTest, invalidSudoku_repeatedRowElement) {
-    uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 3, 0, 8, 5},
-        {0, 0, 1, 1/*0*/, 2, 0, 0, 0, 0},
-        {0, 0, 0, 5, 0, 7, 0, 0, 0},
-        {0, 0, 4, 0, 0, 0, 1, 0, 0},
-        {0, 9, 0, 0, 0, 0, 0, 0, 0},
-        {5, 0, 0, 0, 0, 0, 0, 7, 3},
-        {0, 0, 2, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 4, 0, 0, 0, 9}};
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, sudokuOrig, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-    
-    EXPECT_FALSE(sudoku_solve(solution));
+    memcpy(m_testSudoku, SUDOKU_2, SUDOKU_SIZE_B);
+    m_testSudoku[2][3] = 1;       // original = 0
+    EXPECT_FALSE(sudoku_solve(m_testSudoku));
 }
 
 TEST_F(SudokuTest, invalidSudoku_repeatedColumnElement) {
-    uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 3, 0, 8, 5},
-        {0, 0, 1, 5/*0*/, 2, 0, 0, 0, 0},
-        {0, 0, 0, 5, 0, 7, 0, 0, 0},
-        {0, 0, 4, 0, 0, 0, 1, 0, 0},
-        {0, 9, 0, 0, 0, 0, 0, 0, 0},
-        {5, 0, 0, 0, 0, 0, 0, 7, 3},
-        {0, 0, 2, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 4, 0, 0, 0, 9}};
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, sudokuOrig, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-    
-    EXPECT_FALSE(sudoku_solve(solution));
+    memcpy(m_testSudoku, SUDOKU_2, SUDOKU_SIZE_B);
+    m_testSudoku[2][3] = 5;       // original = 0
+    EXPECT_FALSE(sudoku_solve(m_testSudoku));
 }
 
 TEST_F(SudokuTest, invalidSudoku_repeatedSubmatrixElement) {
-    uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 3, 0, 8, 5},
-        {0, 0, 1, 0, 2, 0, 8/*0*/, 0, 0},
-        {0, 0, 0, 5, 0, 7, 0, 0, 0},
-        {0, 0, 4, 0, 0, 0, 1, 0, 0},
-        {0, 9, 0, 0, 0, 0, 0, 0, 0},
-        {5, 0, 0, 0, 0, 0, 0, 7, 3},
-        {0, 0, 2, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 4, 0, 0, 0, 9}};
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, sudokuOrig, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-    
-    EXPECT_FALSE(sudoku_solve(solution));
+    memcpy(m_testSudoku, SUDOKU_2, SUDOKU_SIZE_B);
+    m_testSudoku[2][6] = 8;       // original = 0
+    EXPECT_FALSE(sudoku_solve(m_testSudoku));
 }
 
 TEST_F(SudokuTest, solveSudoku) {
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, m_sudoku, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-    
-    EXPECT_TRUE(sudoku_solve(solution));
-    bool result = isSudokuSolutionOk(m_sudoku, solution, m_errorMessage);
+    EXPECT_TRUE(sudoku_solve(m_testSudoku));
+    bool result = isSudokuSolutionOk(SUDOKU_1, m_testSudoku, m_errorMessage);
     EXPECT_TRUE(result) << m_errorMessage;
 }
 
 TEST_F(SudokuTest, backTrackingImmune) {
-    uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 3, 0, 8, 5},
-        {0, 0, 1, 0, 2, 0, 0, 0, 0},
-        {0, 0, 0, 5, 0, 7, 0, 0, 0},
-        {0, 0, 4, 0, 0, 0, 1, 0, 0},
-        {0, 9, 0, 0, 0, 0, 0, 0, 0},
-        {5, 0, 0, 0, 0, 0, 0, 7, 3},
-        {0, 0, 2, 0, 1, 0, 0, 0, 0},
-        {0, 0, 0, 0, 4, 0, 0, 0, 9}};
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, sudokuOrig, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-    
-    EXPECT_TRUE(sudoku_solve(solution));
-    bool result = isSudokuSolutionOk(sudokuOrig, solution, m_errorMessage);
+    memcpy(m_testSudoku, SUDOKU_2, SUDOKU_SIZE_B);
+    EXPECT_TRUE(sudoku_solve(m_testSudoku));
+    bool result = isSudokuSolutionOk(SUDOKU_2, m_testSudoku, m_errorMessage);
     EXPECT_TRUE(result) << m_errorMessage;
 }
 
 TEST_F(SudokuTest, yetAnotherSudoku) {
-    uint8_t sudokuOrig[SUDOKU_SIZE][SUDOKU_SIZE] = {
+    uint8_t sudoku[SUDOKU_SIZE][SUDOKU_SIZE] = {
         {1, 0, 0, 0, 0, 0, 0, 8, 9},
         {0, 0, 0, 0, 0, 9, 0, 0, 2},
         {0, 0, 0, 0, 0, 0, 4, 5, 0},
@@ -335,11 +271,9 @@ TEST_F(SudokuTest, yetAnotherSudoku) {
         {0, 0, 4, 0, 7, 0, 0, 0, 0},
         {5, 0, 0, 0, 0, 8, 0, 1, 0},
         {0, 6, 0, 3, 0, 0, 0, 0, 0}};
-    uint8_t solution[SUDOKU_SIZE][SUDOKU_SIZE];
-    memcpy(solution, sudokuOrig, SUDOKU_SIZE * SUDOKU_SIZE * sizeof(uint8_t));
-
-    EXPECT_TRUE(sudoku_solve(solution));
-    bool result = isSudokuSolutionOk(sudokuOrig, solution, m_errorMessage);
+    memcpy(m_testSudoku, sudoku, SUDOKU_SIZE_B);
+    EXPECT_TRUE(sudoku_solve(m_testSudoku));
+    bool result = isSudokuSolutionOk(sudoku, m_testSudoku, m_errorMessage);
     EXPECT_TRUE(result) << m_errorMessage;
 }
 
